@@ -4,8 +4,6 @@ const helmet = require('helmet');
 
 config();
 
-const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE_ID);
-
 const helmetMiddleware = helmet();
 
 module.exports = async (req, res) => {
@@ -20,10 +18,25 @@ module.exports = async (req, res) => {
 		return res.status(200).end();
 	}
 
+	const { base: baseId, table: tableName, record: recordId } = req.query;
+
+	if (!baseId || !tableName) {
+		return res.status(400).json({ error: 'Missing required parameters: base and table' });
+	}
+
 	try {
-		const records = await base(process.env.AIRTABLE_TABLE_NAME).select().firstPage();
-		const data = records.map((record) => record.fields);
-		res.status(200).json(data);
+		const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(baseId);
+
+		if (recordId) {
+			// Fetch a specific record
+			const record = await base(tableName).find(recordId);
+			res.status(200).json(record.fields);
+		} else {
+			// Fetch all records from the table
+			const records = await base(tableName).select().all();
+			const data = records.map((record) => record.fields);
+			res.status(200).json(data);
+		}
 	} catch (error) {
 		console.error('Error in API:', error);
 		res.status(500).json({ error: 'Internal Server Error', details: error.message });
