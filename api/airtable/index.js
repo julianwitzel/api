@@ -37,6 +37,7 @@ const securityCheck = (req, res) => {
 module.exports = async (req, res) => {
 	console.log('API endpoint hit');
 	console.log('Query parameters:', req.query);
+	console.log('NODE_ENV:', process.env.NODE_ENV);
 
 	try {
 		await new Promise((resolve) => helmetMiddleware(req, res, resolve));
@@ -46,7 +47,7 @@ module.exports = async (req, res) => {
 			res.setHeader('Access-Control-Allow-Origin', '*');
 		} else {
 			const origin = req.headers.origin;
-			if (ALLOWED_DOMAINS.some((domain) => origin.endsWith(domain))) {
+			if (origin && ALLOWED_DOMAINS.some((domain) => origin.endsWith(domain))) {
 				res.setHeader('Access-Control-Allow-Origin', origin);
 			} else {
 				console.log('CORS check failed: Invalid origin');
