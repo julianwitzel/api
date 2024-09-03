@@ -6,10 +6,12 @@ config();
 
 const helmetMiddleware = helmet();
 const ALLOWED_DOMAINS = ['vierless.de', 'cf-vierless.webflow.io'];
-const IS_DEVELOPMENT = process.env.NODE_ENV !== 'production';
+const IS_DEVELOPMENT = process.env.NODE_ENV === 'development';
 
-// Relaxed security check for development
-const securityCheck = (req, res) => {
+console.log('Current environment:', process.env.NODE_ENV);
+console.log('Is Development:', IS_DEVELOPMENT);
+
+const securityCheck = (req) => {
 	if (IS_DEVELOPMENT) {
 		console.log('Development mode: Bypassing security checks');
 		return null;
@@ -23,12 +25,12 @@ const securityCheck = (req, res) => {
 
 	if (!origin || !ALLOWED_DOMAINS.some((domain) => origin.endsWith(domain))) {
 		console.log('Security check failed: Invalid origin');
-		return res.status(403).json({ error: 'Forbidden: Invalid origin' });
+		return 'Invalid origin';
 	}
 
 	if (!referer || !ALLOWED_DOMAINS.some((domain) => referer.includes(domain))) {
 		console.log('Security check failed: Invalid referer');
-		return res.status(403).json({ error: 'Forbidden: Invalid referer' });
+		return 'Invalid referer';
 	}
 
 	return null; // Passes security check
@@ -37,10 +39,15 @@ const securityCheck = (req, res) => {
 module.exports = async (req, res) => {
 	console.log('API endpoint hit');
 	console.log('Query parameters:', req.query);
-	console.log('NODE_ENV:', process.env.NODE_ENV);
 
 	try {
 		await new Promise((resolve) => helmetMiddleware(req, res, resolve));
+
+		// Security check
+		const securityError = securityCheck(req);
+		if (securityError && !IS_DEVELOPMENT) {
+			return res.status(403).json({ error: `Forbidden: ${securityError}` });
+		}
 
 		// CORS configuration
 		if (IS_DEVELOPMENT) {
@@ -59,10 +66,6 @@ module.exports = async (req, res) => {
 		if (req.method === 'OPTIONS') {
 			return res.status(200).end();
 		}
-
-		// Apply security checks
-		const securityError = securityCheck(req, res);
-		if (securityError) return securityError;
 
 		const { base: baseId, table: tableName, record: recordId, fields } = req.query;
 
