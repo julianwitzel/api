@@ -1,5 +1,8 @@
+const express = require('express');
 const fs = require('fs').promises;
 const path = require('path');
+
+const router = express.Router();
 
 const errorDetails = {
 	400: { title: 'Bad Request', message: 'The request could not be understood by the server due to malformed syntax.' },
@@ -9,7 +12,7 @@ const errorDetails = {
 	500: { title: 'Internal Server Error', message: 'The server encountered an unexpected condition which prevented it from fulfilling the request.' },
 };
 
-module.exports = async (req, res) => {
+router.get('/', async (req, res) => {
 	const statusCode = req.query.code || 500;
 	const templatePath = path.join(process.cwd(), 'public', 'html', 'error.html');
 
@@ -23,10 +26,11 @@ module.exports = async (req, res) => {
 			.replace(/\{\{errorMessage\}\}/g, error.message)
 			.replace(/\{\{errorDescription\}\}/g, 'If you believe this is an error, please contact the administrator.');
 
-		res.setHeader('Content-Type', 'text/html');
 		res.status(parseInt(statusCode)).send(template);
 	} catch (err) {
 		console.error('Error reading template:', err);
 		res.status(500).send('An error occurred while loading the error page');
 	}
-};
+});
+
+module.exports = router;

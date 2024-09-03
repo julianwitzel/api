@@ -2,7 +2,7 @@
     "version": 2,
     "builds": [
       {
-        "src": "api/**/*.js",
+        "src": "api/index.js",
         "use": "@vercel/node"
       },
       {
@@ -12,16 +12,8 @@
     ],
     "routes": [
       {
-        "src": "/api/airtable",
-        "dest": "/api/routes/airtable.js"
-      },
-      {
-        "src": "/api/error",
-        "dest": "/api/routes/error.js"
-      },
-      {
-        "src": "/",
-        "dest": "/api/routes/root.js"
+        "src": "/api/(.*)",
+        "dest": "/api/index.js"
       },
       {
         "src": "/(.+)",
@@ -29,8 +21,7 @@
       },
       {
         "src": "/(.*)",
-        "dest": "/api/error?code=404",
-        "status": 404
+        "dest": "/api/index.js"
       }
     ]
   }
