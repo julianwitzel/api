@@ -1,15 +1,19 @@
 {
     "version": 2,
     "builds": [
-    {
-        "src": "api/**/*.js",
-        "use": "@vercel/node"
-    }
+        {
+            "src": "api/**/*.js",
+            "use": "@vercel/node"
+        }
     ],
     "routes": [
-    {
-        "src": "/api/airtable",
-        "dest": "/api/airtable/index.js"
-    }
+        {
+            "src": "/api/airtable",
+            "dest": "/api/airtable/index.js"
+        },
+        {
+            "src": "/api/error",
+            "dest": "/api/error.html"
+        }
     ]
 }
