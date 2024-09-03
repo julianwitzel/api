@@ -10,15 +10,25 @@ app.use('/api/airtable', airtableRoute);
 // Error route
 app.use('/api/error', errorRoute);
 
+// Root route
+app.get('/', (req, res) => {
+	res.send('Welcome to the Vierless API');
+});
+
 // 404 handler
-app.use((req, res) => {
-	res.redirect(404, '/api/error?code=404');
+app.use((req, res, next) => {
+	res.status(404);
+	// Pass the error to the error handler
+	next(new Error('Not Found'));
 });
 
 // Error handler
 app.use((err, req, res, next) => {
-	console.error(err.stack);
-	res.redirect(500, '/api/error?code=500');
+	const statusCode = res.statusCode !== 200 ? res.statusCode : 500;
+	res.status(statusCode);
+
+	// Instead of redirecting, we'll render the error page directly
+	errorRoute(req, res, next);
 });
 
 module.exports = app;

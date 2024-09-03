@@ -12,8 +12,7 @@ const errorDetails = {
 	500: { title: 'Internal Server Error', message: 'The server encountered an unexpected condition which prevented it from fulfilling the request.' },
 };
 
-router.get('/', async (req, res) => {
-	const statusCode = req.query.code || 500;
+const renderErrorPage = async (req, res, statusCode) => {
 	const templatePath = path.join(process.cwd(), 'public', 'html', 'error.html');
 
 	try {
@@ -31,6 +30,13 @@ router.get('/', async (req, res) => {
 		console.error('Error reading template:', err);
 		res.status(500).send('An error occurred while loading the error page');
 	}
+};
+
+router.get('/', async (req, res) => {
+	const statusCode = req.query.code || res.statusCode || 500;
+	await renderErrorPage(req, res, statusCode);
 });
 
+// Export both the router and the renderErrorPage function
 module.exports = router;
+module.exports.renderErrorPage = renderErrorPage;

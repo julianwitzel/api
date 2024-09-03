@@ -1,6 +1,7 @@
 const express = require('express');
 const Airtable = require('airtable');
 const securityMiddleware = require('../middleware/security');
+const { renderErrorPage } = require('./error');
 
 const router = express.Router();
 
@@ -43,19 +44,20 @@ router.get('/', async (req, res) => {
 	} catch (error) {
 		console.error('Airtable API Error:', error);
 
-		// Determine the appropriate error code based on the error
-		let errorCode;
+		// Determine the appropriate error code
+		let statusCode;
 		if (error.error === 'NOT_FOUND') {
-			errorCode = 404;
+			statusCode = 404;
 		} else if (error.error === 'INVALID_API_KEY') {
-			errorCode = 401;
+			statusCode = 401;
 		} else if (error.statusCode) {
-			errorCode = error.statusCode;
+			statusCode = error.statusCode;
 		} else {
-			errorCode = 500; // Default to 500 for unexpected errors
+			statusCode = 500; // Default to 500 for unexpected errors
 		}
 
-		res.redirect(303, `/api/error?code=${errorCode}`);
+		// Render the error page directly
+		await renderErrorPage(req, res, statusCode);
 	}
 });
 
