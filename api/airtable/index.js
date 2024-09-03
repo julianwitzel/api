@@ -12,16 +12,16 @@ console.log('Current environment:', process.env.NODE_ENV);
 console.log('Is Development:', IS_DEVELOPMENT);
 
 const securityCheck = (req) => {
-	if (IS_DEVELOPMENT) {
-		console.log('Development mode: Bypassing security checks');
-		return null;
-	}
-
 	const origin = req.headers.origin;
 	const referer = req.headers.referer;
 
 	console.log('Origin:', origin);
 	console.log('Referer:', referer);
+
+	if (IS_DEVELOPMENT) {
+		console.log('Development mode: Allowing request despite missing headers');
+		return null;
+	}
 
 	if (!origin || !ALLOWED_DOMAINS.some((domain) => origin.endsWith(domain))) {
 		console.log('Security check failed: Invalid origin');
@@ -45,7 +45,7 @@ module.exports = async (req, res) => {
 
 		// Security check
 		const securityError = securityCheck(req);
-		if (securityError && !IS_DEVELOPMENT) {
+		if (securityError) {
 			return res.status(403).json({ error: `Forbidden: ${securityError}` });
 		}
 
