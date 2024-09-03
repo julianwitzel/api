@@ -20,6 +20,10 @@
             "dest": "/api/error.js"
         },
         {
+            "src": "/css/(.*)",
+            "dest": "/public/css/$1"
+        },
+        {
             "src": "/(.*)",
             "dest": "/api/error.js"
         }

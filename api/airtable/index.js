@@ -14,7 +14,7 @@ module.exports = (req, res) => {
 
 			// Check if all required parameters are provided
 			if (!baseId || !tableName || !recordId) {
-				return res.redirect(303, '/api/error?code=400');
+				return res.redirect(303, `/api/error?code=400`);
 			}
 
 			// Configure Airtable with the provided base ID
@@ -25,7 +25,7 @@ module.exports = (req, res) => {
 
 			// If no record is found, return a 404 error
 			if (!record) {
-				return res.redirect(303, '/api/error?code=404');
+				return res.redirect(303, `/api/error?code=404`);
 			}
 
 			// Format the record

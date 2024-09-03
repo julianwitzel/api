@@ -5,14 +5,16 @@
 		<meta
 			name="viewport"
 			content="width=device-width, initial-scale=1.0" />
+		<title>{{errorCode}} - {{errorTitle}}</title>
 		<link
 			rel="stylesheet"
-			href="../css/style.css" />
-		<title>Generic - There was an error</title>
+			href="/css/style.css" />
 	</head>
 	<body>
 		<div class="error-container">
-			<h1>Generic - There was an error</h1>
+			<h1>{{errorCode}} - {{errorTitle}} NEW</h1>
+			<p>{{errorMessage}}</p>
+			<p>{{errorDescription}}</p>
 		</div>
 	</body>
 </html>
