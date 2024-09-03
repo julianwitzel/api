@@ -1,57 +1,45 @@
-const { config } = require('dotenv');
 const Airtable = require('airtable');
+const securityMiddleware = require('../middleware/securityMiddleware');
 
-config();
+// Security settings
+const allowedDomains = ['vierless.de', 'cf-vierless.webflow.io'];
+const errorRedirectUrl = 'https://api.vierless.de/error-page';
 
-const ALLOWED_DOMAINS = ['vierless.de', 'cf-vierless.webflow.io'];
-const IS_DEVELOPMENT = process.env.NODE_ENV === 'development';
-
-const isAllowedOrigin = (origin) => {
-	return ALLOWED_DOMAINS.some((domain) => origin && origin.endsWith(domain));
-};
-
-const fetchAirtableRecord = async (baseId, tableName, recordId, fields) => {
-	const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(baseId);
-	const record = await base(tableName).find(recordId);
-
-	if (fields) {
-		const fieldList = fields.split(',');
-		return Object.fromEntries(Object.entries(record.fields).filter(([key]) => fieldList.includes(key)));
-	}
-
-	return record.fields;
-};
-
+// Airtable API route handler
 module.exports = async (req, res) => {
-	console.log(`API hit in ${IS_DEVELOPMENT ? 'development' : 'production'} mode`);
+	// Apply security middleware
+	securityMiddleware(allowedDomains, false, errorRedirectUrl)(req, res, async () => {
+		try {
+			// Get the base ID, table name, and record ID from the query parameters
+			const { base: baseId, table: tableName, record: recordId } = req.query;
 
-	const origin = req.headers.origin;
-	console.log('Origin:', origin);
+			// Check if all required parameters are provided
+			if (!baseId || !tableName || !recordId) {
+				return res.status(400).json({ error: 'Base ID, table name, and record ID are all required' });
+			}
 
-	if (!IS_DEVELOPMENT && origin && !isAllowedOrigin(origin)) {
-		console.log('Access denied: Invalid origin');
-		return res.status(403).json({ error: 'Forbidden: Invalid origin' });
-	}
+			// Configure Airtable with the provided base ID
+			const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(baseId);
 
-	res.setHeader('Access-Control-Allow-Origin', IS_DEVELOPMENT ? '*' : origin || '');
-	res.setHeader('Access-Control-Allow-Methods', 'GET');
+			// Fetch the specific record from Airtable
+			const record = await base(tableName).find(recordId);
 
-	if (req.method === 'OPTIONS') {
-		return res.status(200).end();
-	}
+			// If no record is found, return a 404 error
+			if (!record) {
+				return res.status(404).json({ error: 'Record not found' });
+			}
 
-	const { base: baseId, table: tableName, record: recordId, fields } = req.query;
+			// Format the record
+			const formattedRecord = {
+				id: record.id,
+				fields: record.fields,
+			};
 
-	if (!baseId || !tableName || !recordId) {
-		console.log('Missing required parameters');
-		return res.status(400).json({ error: 'Missing required parameters' });
-	}
-
-	try {
-		const data = await fetchAirtableRecord(baseId, tableName, recordId, fields);
-		res.status(200).json(data);
-	} catch (error) {
-		console.error('Error fetching data:', error);
-		res.status(500).json({ error: 'Internal Server Error' });
-	}
+			// Send the response
+			res.status(200).json({ record: formattedRecord });
+		} catch (error) {
+			console.error('Airtable API Error:', error);
+			res.status(500).json({ error: 'An error occurred while fetching data from Airtable' });
+		}
+	});
 };
