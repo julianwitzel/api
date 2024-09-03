@@ -18,7 +18,7 @@ app.use('/api/error', errorRoute);
 // Root route
 app.get('/', async (req, res, next) => {
 	try {
-		const landingPath = path.join(process.cwd(), 'public', 'html', 'landing.html');
+		const landingPath = path.join(process.cwd(), 'public', 'html', 'index.html');
 		const content = await fs.readFile(landingPath, 'utf8');
 		res.send(content);
 	} catch (err) {
