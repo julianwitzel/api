@@ -29,8 +29,8 @@
       },
       {
         "src": "/(.*)",
-        "status": 404,
-        "dest": "/api/error?code=404"
+        "dest": "/api/error?code=404",
+        "status": 404
       }
     ]
   }

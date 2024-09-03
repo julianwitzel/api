@@ -27,6 +27,6 @@ module.exports = async (req, res) => {
 		res.status(parseInt(statusCode)).send(template);
 	} catch (err) {
 		console.error('Error reading template:', err);
-		res.status(500).send('An error occurred');
+		res.status(500).send('An error occurred while loading the error page');
 	}
 };
