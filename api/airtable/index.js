@@ -2,7 +2,7 @@ const Airtable = require('airtable');
 const securityMiddleware = require('../middleware/securityMiddleware');
 
 // Security settings
-const allowedDomains = ['vierless.de', 'cf-vierless.webflow.io'];
+const allowedDomains = ['https://vierless.de', 'https://cf-vierless.webflow.io'];
 const errorRedirectUrl = 'https://api.vierless.de/error-page';
 
 // Airtable API route handler
