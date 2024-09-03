@@ -1,4 +1,4 @@
-const securityMiddleware = (allowedDomains = [], allowAll = false, errorRedirectUrl = null) => {
+const securityMiddleware = (allowedDomains = [], allowAll = false) => {
 	return (req, res, next) => {
 		const origin = req.headers.origin;
 
@@ -22,16 +22,8 @@ const securityMiddleware = (allowedDomains = [], allowAll = false, errorRedirect
 			return next();
 		}
 
-		return handleError(res, errorRedirectUrl, 'Access denied');
+		return res.redirect(303, '/api/error');
 	};
-};
-
-const handleError = (res, errorRedirectUrl, errorMessage) => {
-	if (errorRedirectUrl) {
-		return res.redirect(303, errorRedirectUrl);
-	} else {
-		return res.status(403).json({ error: errorMessage });
-	}
 };
 
 module.exports = securityMiddleware;
