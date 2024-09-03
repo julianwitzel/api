@@ -22,7 +22,7 @@ const securityMiddleware = (allowedDomains = [], allowAll = false) => {
 			return next();
 		}
 
-		return res.redirect(303, '/api/error');
+		return res.redirect(303, '/api/error?code=403');
 	};
 };
 

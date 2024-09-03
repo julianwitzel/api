@@ -3,19 +3,18 @@ const securityMiddleware = require('../middleware/securityMiddleware');
 
 // Security settings
 const allowedDomains = ['https://vierless.de', 'https://cf-vierless.webflow.io'];
-const errorRedirectUrl = 'https://api.vierless.de/error-page';
 
 // Airtable API route handler
-module.exports = async (req, res) => {
+module.exports = (req, res) => {
 	// Apply security middleware
-	securityMiddleware(allowedDomains, false, errorRedirectUrl)(req, res, async () => {
+	securityMiddleware(allowedDomains, false)(req, res, async () => {
 		try {
 			// Get the base ID, table name, and record ID from the query parameters
 			const { base: baseId, table: tableName, record: recordId } = req.query;
 
 			// Check if all required parameters are provided
 			if (!baseId || !tableName || !recordId) {
-				return res.status(400).json({ error: 'Base ID, table name, and record ID are all required' });
+				return res.redirect(303, '/api/error?code=400');
 			}
 
 			// Configure Airtable with the provided base ID
@@ -26,7 +25,7 @@ module.exports = async (req, res) => {
 
 			// If no record is found, return a 404 error
 			if (!record) {
-				return res.status(404).json({ error: 'Record not found' });
+				return res.redirect(303, '/api/error?code=404');
 			}
 
 			// Format the record
@@ -39,7 +38,20 @@ module.exports = async (req, res) => {
 			res.status(200).json({ record: formattedRecord });
 		} catch (error) {
 			console.error('Airtable API Error:', error);
-			res.status(500).json({ error: 'An error occurred while fetching data from Airtable' });
+
+			// Determine the appropriate error code based on the error
+			let errorCode;
+			if (error.error === 'NOT_FOUND') {
+				errorCode = 404;
+			} else if (error.error === 'INVALID_API_KEY') {
+				errorCode = 401;
+			} else if (error.statusCode) {
+				errorCode = error.statusCode;
+			} else {
+				errorCode = 500; // Default to 500 for unexpected errors
+			}
+
+			res.redirect(303, `/api/error?code=${errorCode}`);
 		}
 	});
 };

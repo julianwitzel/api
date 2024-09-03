@@ -4,6 +4,10 @@
         {
             "src": "api/**/*.js",
             "use": "@vercel/node"
+        },
+        {
+            "src": "public/**",
+            "use": "@vercel/static"
         }
     ],
     "routes": [
@@ -13,7 +17,11 @@
         },
         {
             "src": "/api/error",
-            "dest": "/api/error.html"
+            "dest": "/api/error.js"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/api/error.js"
         }
     ]
 }

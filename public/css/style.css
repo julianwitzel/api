@@ -1,0 +1,18 @@
+body {
+	font-family: Arial, sans-serif;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	height: 100vh;
+	margin: 0;
+	padding: 0;
+}
+
+/* Error */
+.error-container {
+	text-align: center;
+	padding: 2rem;
+}
+.error-container h1 {
+	color: #e74c3c;
+}
