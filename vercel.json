@@ -12,6 +12,10 @@
     ],
     "routes": [
         {
+            "src": "/",
+            "dest": "/api/routes/root.js"
+        },
+        {
             "src": "/api/airtable",
             "dest": "/api/routes/airtable.js"
         },
