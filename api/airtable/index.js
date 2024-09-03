@@ -1,94 +1,57 @@
 const { config } = require('dotenv');
 const Airtable = require('airtable');
-const helmet = require('helmet');
 
 config();
 
-const helmetMiddleware = helmet();
 const ALLOWED_DOMAINS = ['vierless.de', 'cf-vierless.webflow.io'];
 const IS_DEVELOPMENT = process.env.NODE_ENV === 'development';
 
-console.log('Current environment:', process.env.NODE_ENV);
-console.log('Is Development:', IS_DEVELOPMENT);
+const isAllowedOrigin = (origin) => {
+	return ALLOWED_DOMAINS.some((domain) => origin && origin.endsWith(domain));
+};
 
-const securityCheck = (req) => {
-	const origin = req.headers.origin;
-	const referer = req.headers.referer;
+const fetchAirtableRecord = async (baseId, tableName, recordId, fields) => {
+	const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(baseId);
+	const record = await base(tableName).find(recordId);
 
-	console.log('Origin:', origin);
-	console.log('Referer:', referer);
-
-	if (IS_DEVELOPMENT) {
-		console.log('Development mode: Allowing request despite missing headers');
-		return null;
+	if (fields) {
+		const fieldList = fields.split(',');
+		return Object.fromEntries(Object.entries(record.fields).filter(([key]) => fieldList.includes(key)));
 	}
 
-	if (!origin || !ALLOWED_DOMAINS.some((domain) => origin.endsWith(domain))) {
-		console.log('Security check failed: Invalid origin');
-		return 'Invalid origin';
-	}
-
-	if (!referer || !ALLOWED_DOMAINS.some((domain) => referer.includes(domain))) {
-		console.log('Security check failed: Invalid referer');
-		return 'Invalid referer';
-	}
-
-	return null; // Passes security check
+	return record.fields;
 };
 
 module.exports = async (req, res) => {
-	console.log('API endpoint hit');
-	console.log('Query parameters:', req.query);
+	console.log(`API hit in ${IS_DEVELOPMENT ? 'development' : 'production'} mode`);
+
+	const origin = req.headers.origin;
+	console.log('Origin:', origin);
+
+	if (!IS_DEVELOPMENT && !isAllowedOrigin(origin)) {
+		console.log('Access denied: Invalid origin');
+		return res.status(403).json({ error: 'Forbidden: Invalid origin' });
+	}
+
+	res.setHeader('Access-Control-Allow-Origin', IS_DEVELOPMENT ? '*' : origin);
+	res.setHeader('Access-Control-Allow-Methods', 'GET');
+
+	if (req.method === 'OPTIONS') {
+		return res.status(200).end();
+	}
+
+	const { base: baseId, table: tableName, record: recordId, fields } = req.query;
+
+	if (!baseId || !tableName || !recordId) {
+		console.log('Missing required parameters');
+		return res.status(400).json({ error: 'Missing required parameters' });
+	}
 
 	try {
-		await new Promise((resolve) => helmetMiddleware(req, res, resolve));
-
-		// Security check
-		const securityError = securityCheck(req);
-		if (securityError) {
-			return res.status(403).json({ error: `Forbidden: ${securityError}` });
-		}
-
-		// CORS configuration
-		if (IS_DEVELOPMENT) {
-			res.setHeader('Access-Control-Allow-Origin', '*');
-		} else {
-			const origin = req.headers.origin;
-			if (origin && ALLOWED_DOMAINS.some((domain) => origin.endsWith(domain))) {
-				res.setHeader('Access-Control-Allow-Origin', origin);
-			} else {
-				console.log('CORS check failed: Invalid origin');
-				return res.status(403).json({ error: 'Forbidden: Invalid origin' });
-			}
-		}
-		res.setHeader('Access-Control-Allow-Methods', 'GET');
-
-		if (req.method === 'OPTIONS') {
-			return res.status(200).end();
-		}
-
-		const { base: baseId, table: tableName, record: recordId, fields } = req.query;
-
-		if (!baseId || !tableName || !recordId) {
-			console.log('Missing required parameters');
-			return res.status(400).json({ error: 'Missing required parameters' });
-		}
-
-		const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(baseId);
-
-		// Fetch the specific record
-		const record = await base(tableName).find(recordId);
-
-		// Filter fields if specified
-		let responseData = record.fields;
-		if (fields) {
-			const fieldList = fields.split(',');
-			responseData = Object.fromEntries(Object.entries(record.fields).filter(([key]) => fieldList.includes(key)));
-		}
-
-		res.status(200).json(responseData);
+		const data = await fetchAirtableRecord(baseId, tableName, recordId, fields);
+		res.status(200).json(data);
 	} catch (error) {
-		console.error('Detailed error:', error);
-		res.status(500).json({ error: 'Internal Server Error', details: error.message, stack: error.stack });
+		console.error('Error fetching data:', error);
+		res.status(500).json({ error: 'Internal Server Error' });
 	}
 };
