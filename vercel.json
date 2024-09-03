@@ -1,36 +1,42 @@
 {
     "version": 2,
     "builds": [
-        {
-            "src": "api/**/*.js",
-            "use": "@vercel/node"
-        },
-        {
-            "src": "public/**",
-            "use": "@vercel/static"
-        }
+      {
+        "src": "api/**/*.js",
+        "use": "@vercel/node"
+      },
+      {
+        "src": "public/**",
+        "use": "@vercel/static"
+      }
     ],
     "routes": [
-        {
-            "src": "/api/airtable",
-            "dest": "/api/routes/airtable.js"
-        },
-        {
-            "src": "/api/error",
-            "dest": "/api/routes/error.js"
-        },
-        {
-            "src": "/(.+)",
-            "dest": "/public/$1"
-        },
-        {
-            "src": "/",
-            "dest": "/api/routes/root.js"
-        },
-        {
-            "src": "/(.*)",
-            "status": 404,
-            "dest": "/api/routes/error.js?code=404"
-        }
-    ]
-}
+      {
+        "src": "/api/airtable",
+        "dest": "/api/routes/airtable.js"
+      },
+      {
+        "src": "/api/error",
+        "dest": "/api/routes/error.js"
+      },
+      {
+        "src": "/",
+        "dest": "/api/routes/root.js"
+      },
+      {
+        "src": "/(.+)",
+        "dest": "/public/$1"
+      },
+      {
+        "src": "/(.*)",
+        "status": 404,
+        "dest": "/api/error?code=404"
+      }
+    ],
+    "errorOverlays": {
+      "404": {
+        "handle": "rewrite",
+        "dest": "/api/error?code=404"
+      }
+    }
+  }
