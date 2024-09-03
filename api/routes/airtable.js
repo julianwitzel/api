@@ -1,5 +1,5 @@
 const Airtable = require('airtable');
-const securityMiddleware = require('../middleware/securityMiddleware');
+const securityMiddleware = require('../middleware/security');
 
 // Security settings
 const allowedDomains = ['https://vierless.de', 'https://cf-vierless.webflow.io'];

@@ -13,11 +13,15 @@
     "routes": [
         {
             "src": "/api/airtable",
-            "dest": "/api/airtable/index.js"
+            "dest": "/api/routes/airtable.js"
         },
         {
             "src": "/api/error",
-            "dest": "/api/error.js"
+            "dest": "/api/routes/error.js"
+        },
+        {
+            "src": "/favicon.ico",
+            "dest": "/public/favicon.ico"
         },
         {
             "src": "/css/(.*)",
@@ -25,7 +29,7 @@
         },
         {
             "src": "/(.*)",
-            "dest": "/api/error.js"
+            "dest": "/api/routes/error.js"
         }
     ]
 }
