@@ -11,7 +11,7 @@ const errorDetails = {
 
 module.exports = async (req, res) => {
 	const statusCode = req.query.code || 500;
-	const templatePath = path.join(process.cwd(), 'public', 'error.html');
+	const templatePath = path.join(process.cwd(), 'public', 'html', 'error.html');
 
 	try {
 		let template = await fs.readFile(templatePath, 'utf8');
