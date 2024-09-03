@@ -28,12 +28,12 @@ module.exports = async (req, res) => {
 	const origin = req.headers.origin;
 	console.log('Origin:', origin);
 
-	if (!IS_DEVELOPMENT && !isAllowedOrigin(origin)) {
+	if (!IS_DEVELOPMENT && origin && !isAllowedOrigin(origin)) {
 		console.log('Access denied: Invalid origin');
 		return res.status(403).json({ error: 'Forbidden: Invalid origin' });
 	}
 
-	res.setHeader('Access-Control-Allow-Origin', IS_DEVELOPMENT ? '*' : origin);
+	res.setHeader('Access-Control-Allow-Origin', IS_DEVELOPMENT ? '*' : origin || '');
 	res.setHeader('Access-Control-Allow-Methods', 'GET');
 
 	if (req.method === 'OPTIONS') {
