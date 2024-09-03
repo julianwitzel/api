@@ -20,16 +20,17 @@
             "dest": "/api/routes/error.js"
         },
         {
-            "src": "/",
-            "dest": "/api/routes/root.js"
-        },
-        {
             "src": "/(.+)",
             "dest": "/public/$1"
         },
         {
+            "src": "/",
+            "dest": "/api/routes/root.js"
+        },
+        {
             "src": "/(.*)",
-            "dest": "/api/routes/error.js"
+            "status": 404,
+            "dest": "/api/routes/error.js?code=404"
         }
     ]
 }
