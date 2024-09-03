@@ -16,19 +16,18 @@ app.use('/api/airtable', airtableRoute);
 app.use('/api/error', errorRoute);
 
 // Root route
-app.get('/', async (req, res) => {
+app.get('/', async (req, res, next) => {
 	try {
-		const landingPath = path.join(process.cwd(), 'public', 'html', 'index.html');
+		const landingPath = path.join(process.cwd(), 'public', 'html', 'landing.html');
 		const content = await fs.readFile(landingPath, 'utf8');
 		res.send(content);
 	} catch (err) {
-		console.error('Error reading landing page:', err);
-		res.status(500).send('An error occurred while loading the landing page');
+		next(err);
 	}
 });
 
-// 404 handler
-app.use((req, res, next) => {
+// Catch-all route for handling 404s
+app.use('*', (req, res, next) => {
 	res.status(404);
 	next(new Error('Not Found'));
 });
@@ -36,7 +35,6 @@ app.use((req, res, next) => {
 // Error handler
 app.use((err, req, res, next) => {
 	const statusCode = res.statusCode !== 200 ? res.statusCode : 500;
-	res.status(statusCode);
 	errorRoute.renderErrorPage(req, res, statusCode);
 });
 

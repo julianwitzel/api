@@ -37,6 +37,5 @@ router.get('/', async (req, res) => {
 	await renderErrorPage(req, res, statusCode);
 });
 
-// Export both the router and the renderErrorPage function
 module.exports = router;
 module.exports.renderErrorPage = renderErrorPage;
