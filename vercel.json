@@ -32,11 +32,5 @@
         "status": 404,
         "dest": "/api/error?code=404"
       }
-    ],
-    "errorOverlays": {
-      "404": {
-        "handle": "rewrite",
-        "dest": "/api/error?code=404"
-      }
-    }
+    ]
   }
