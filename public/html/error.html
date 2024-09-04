@@ -37,6 +37,9 @@
 			name="theme-color"
 			content="#ffffff" />
 		<style>
+			.subheading {
+				margin-bottom: 1rem;
+			}
 			.error-description-wrapper {
 				display: flex;
 				flex-direction: column;
@@ -70,7 +73,7 @@
 					<div class="padding-global padding-section-large">
 						<div class="container-small">
 							<div class="content-wrapper">
-								<h1 class="h6 error">{{errorCode}} - {{errorTitle}}</h1>
+								<h1 class="h6 error subheading">{{errorCode}} - {{errorTitle}}</h1>
 								<h2 class="h1">{{errorHeading}}</h2>
 								<div class="error-description-wrapper">
 									<p>{{errorMessage}}</p>
