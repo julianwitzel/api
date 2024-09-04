@@ -59,11 +59,19 @@
 			<main role="main">
 				<section>
 					<div class="padding-global padding-section-large">
-						<div class="container-medium">
+						<div class="container-small">
 							<div class="content-wrapper">
-								<h1>{{errorCode}} - {{errorTitle}}</h1>
+								<h1 class="h6 error">{{errorCode}} - {{errorTitle}}</h1>
+								<h2 class="h1">{{errorHeading}}</h2>
 								<p>{{errorMessage}}</p>
-								<p>{{errorDescription}}</p>
+								{{#if showButton}}
+								<a
+									class="btn secondary"
+									href="{{buttonLink}}"
+									target="_blank"
+									>{{buttonText}}</a
+								>
+								{{/if}}
 							</div>
 						</div>
 					</div>

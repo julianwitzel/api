@@ -4,6 +4,7 @@
 	--brand-color--green-1: #05ef95;
 	--brand-color--green-2: #2cc380;
 	--neutral-color--1000: #0c0c0c;
+	--error-main: #c82d2d;
 
 	--white-color--100: rgba(255, 255, 255, 1);
 	--white-color--95: rgba(255, 255, 255, 0.95);
@@ -275,6 +276,11 @@ h6,
 }
 .content-group {
 	margin-bottom: 2rem;
+}
+
+/* Error */
+.error {
+	color: var(--error-main);
 }
 
 /*############ Components ###########*/

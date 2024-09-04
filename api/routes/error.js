@@ -5,11 +5,18 @@ const path = require('path');
 const router = express.Router();
 
 const errorDetails = {
-	400: { title: 'Bad Request', message: 'The request could not be understood by the server due to malformed syntax.' },
-	401: { title: 'Unauthorized', message: 'The request requires user authentication.' },
-	403: { title: 'Forbidden', message: "You don't have permission to access this resource." },
-	404: { title: 'Not Found', message: 'The requested resource could not be found.' },
-	500: { title: 'Internal Server Error', message: 'The server encountered an unexpected condition which prevented it from fulfilling the request.' },
+	400: { title: 'Bad Request', heading: 'Falsche Abzweigung!', message: 'Dein Browser hat uns eine krumme Anfrage geschickt – da passt was nicht zusammen.' },
+	401: { title: 'Unauthorized', heading: 'Zutritt verboten!', message: 'Ohne Berechtigung geht es hier nicht weiter – bitte anmelden!' },
+	403: {
+		title: 'Forbidden',
+		heading: 'Kein Durchkommen!',
+		message: 'Interessierst Du Dich für unsere Prozesse? Leute wie Dich brauchen wir!',
+		showButton: true,
+		buttonText: 'Karriere bei VIERLESS',
+		buttonLink: 'https://vierless.de/karriere/',
+	},
+	404: { title: 'Not Found', heading: 'Irgendwo im Nirgendwo!', message: 'Die Seite existiert nicht – oder hat vielleicht nie existiert.' },
+	500: { title: 'Internal Server Error', heading: 'Server auf Kaffeepause!', message: 'Unser Server braucht eine Pause – wir arbeiten schon an der Lösung.' },
 };
 
 const renderErrorPage = async (req, res, statusCode) => {
@@ -22,8 +29,19 @@ const renderErrorPage = async (req, res, statusCode) => {
 		template = template
 			.replace(/\{\{errorCode\}\}/g, statusCode)
 			.replace(/\{\{errorTitle\}\}/g, error.title)
-			.replace(/\{\{errorMessage\}\}/g, error.message)
-			.replace(/\{\{errorDescription\}\}/g, 'If you believe this is an error, please contact the administrator.');
+			.replace(/\{\{errorHeading\}\}/g, error.heading)
+			.replace(/\{\{errorMessage\}\}/g, error.message);
+
+		if (error.showButton) {
+			template = template
+				.replace('{{#if showButton}}', '')
+				.replace('{{/if}}', '')
+				.replace(/\{\{buttonText\}\}/g, error.buttonText)
+				.replace(/\{\{buttonLink\}\}/g, error.buttonLink);
+		} else {
+			// Remove the button section if showButton is false
+			template = template.replace(/\{\{#if showButton\}\}[\s\S]*?\{\{\/if\}\}/g, '');
+		}
 
 		res.status(parseInt(statusCode)).send(template);
 	} catch (err) {
