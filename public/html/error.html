@@ -36,6 +36,15 @@
 		<meta
 			name="theme-color"
 			content="#ffffff" />
+		<style>
+			.error-description-wrapper {
+				display: flex;
+				flex-direction: column;
+				align-items: flex-start;
+				gap: 2rem;
+				margin-top: 1rem;
+			}
+		</style>
 	</head>
 	<body>
 		<div class="page-wrapper">
@@ -63,15 +72,17 @@
 							<div class="content-wrapper">
 								<h1 class="h6 error">{{errorCode}} - {{errorTitle}}</h1>
 								<h2 class="h1">{{errorHeading}}</h2>
-								<p>{{errorMessage}}</p>
-								{{#if showButton}}
-								<a
-									class="btn secondary"
-									href="{{buttonLink}}"
-									target="_blank"
-									>{{buttonText}}</a
-								>
-								{{/if}}
+								<div class="error-description-wrapper">
+									<p>{{errorMessage}}</p>
+									{{#if showButton}}
+									<a
+										class="btn secondary"
+										href="{{buttonLink}}"
+										target="_blank"
+										>{{buttonText}}</a
+									>
+									{{/if}}
+								</div>
 							</div>
 						</div>
 					</div>
