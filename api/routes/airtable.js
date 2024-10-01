@@ -14,8 +14,8 @@ router.use(securityMiddleware(allowedDomains, false));
 // Airtable API route handler
 router.get('/', async (req, res) => {
 	try {
-		// Get the base ID, table name, and record ID from the query parameters
-		const { base: baseId, table: tableName, record: recordId } = req.query;
+		// Get the base ID, table name, record ID, and fields from the query parameters
+		const { base: baseId, table: tableName, record: recordId, fields } = req.query;
 
 		// Check if all required parameters are provided
 		if (!baseId || !tableName || !recordId) {
@@ -33,10 +33,23 @@ router.get('/', async (req, res) => {
 			return res.redirect(303, `/api/error?code=404`);
 		}
 
-		// Format the record
+		// Format the record, selecting only specified fields if provided
+		let formattedFields;
+		if (fields) {
+			const fieldArray = fields.split(',');
+			formattedFields = {};
+			for (const field of fieldArray) {
+				if (record.fields.hasOwnProperty(field)) {
+					formattedFields[field] = record.fields[field];
+				}
+			}
+		} else {
+			formattedFields = record.fields;
+		}
+
 		const formattedRecord = {
 			id: record.id,
-			fields: record.fields,
+			fields: formattedFields,
 		};
 
 		// Send the response
