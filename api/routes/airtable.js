@@ -1,15 +1,8 @@
 const express = require('express');
 const Airtable = require('airtable');
-const securityMiddleware = require('../middleware/security');
 const { renderErrorPage } = require('./error');
 
 const router = express.Router();
-
-// Security settings
-const allowedDomains = ['https://vierless.de', 'https://cf-vierless.webflow.io'];
-
-// Apply security middleware to all routes in this router
-router.use(securityMiddleware(allowedDomains, false));
 
 // Airtable API route handler
 router.get('/', async (req, res) => {

@@ -1,14 +1,23 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs').promises;
+const securityMiddleware = require('./middleware/security');
 const airtableRoute = require('./routes/airtable');
 const errorRoute = require('./routes/error');
 const imageProcessingRoutes = require('./routes/imageProcessing');
 
 const app = express();
 
-// Middleware
+// Define allowed domains
+const allowedDomains = ['https://vierless.de', 'https://cf-vierless.webflow.io'];
+
+// Apply security middleware to all routes
+app.use(securityMiddleware(allowedDomains, false));
+
+// Body parsing middleware
 app.use(express.json());
+
+// Serve static files from the public directory
 app.use(express.static(path.join(process.cwd(), 'public')));
 
 // API routes
