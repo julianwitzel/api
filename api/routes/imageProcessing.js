@@ -16,18 +16,22 @@ router.post('/create-og-image', async (req, res) => {
 		const [thumbnail, background] = await Promise.all([fetchImage(thumbnailUrl), fetchImage(backgroundUrl)]);
 
 		// Process background image
-		const processedBackground = await sharp(background).resize(1200, 630, { fit: 'cover' }).toBuffer();
+		const processedBackground = await sharp(background)
+			.resize(1200, 630, { fit: 'cover' }) // Adjust size and fit for background
+			.toBuffer();
 
-		// Process thumbnail
-		const processedThumbnail = await sharp(thumbnail).resize(800, 600, { fit: 'contain' }).toBuffer();
+		// Process thumbnail (adjust size to match new layout)
+		const processedThumbnail = await sharp(thumbnail)
+			.resize(600, 600, { fit: 'contain' }) // More balanced sizing
+			.toBuffer();
 
-		// Composite images
+		// Composite images (adjust position to match desired layout)
 		const result = await sharp(processedBackground)
 			.composite([
 				{
 					input: processedThumbnail,
-					top: 15,
-					left: 200,
+					top: 50, // Adjust this value to move the thumbnail vertically
+					left: 300, // Adjust this value to center the thumbnail horizontally
 				},
 			])
 			.toBuffer();
