@@ -27,29 +27,6 @@ router.post('/create-og-image', async (req, res) => {
 		const processedThumbnail = await sharp(thumbnail).resize(600, 600, { fit: 'cover' }).toBuffer();
 		console.log('Thumbnail image processed');
 
-		// Create a rounded rectangle mask
-		console.log('Creating rounded corners mask...');
-		const roundedCorners = await sharp({
-			create: {
-				width: 1200,
-				height: 630,
-				background: { r: 255, g: 255, b: 255, alpha: 0 },
-			},
-		})
-			.png()
-			.composite([
-				{
-					input: Buffer.from(
-						`<svg width="1200" height="630">
-                    <rect x="0" y="0" width="1200" height="630" rx="50" ry="50" fill="white" />
-                </svg>`
-					),
-					blend: 'dest-in',
-				},
-			])
-			.toBuffer();
-		console.log('Rounded corners mask created');
-
 		// Composite images with adjusted positioning
 		console.log('Compositing images...');
 		const result = await sharp(processedBackground)
@@ -63,21 +40,9 @@ router.post('/create-og-image', async (req, res) => {
 			.toBuffer();
 		console.log('Images composited');
 
-		// Apply rounded corners
-		console.log('Applying rounded corners...');
-		const finalImage = await sharp(result)
-			.composite([
-				{
-					input: roundedCorners,
-					blend: 'dest-in',
-				},
-			])
-			.toBuffer();
-		console.log('Rounded corners applied');
-
 		// Send the result
 		res.set('Content-Type', 'image/jpeg');
-		res.send(finalImage);
+		res.send(result);
 	} catch (error) {
 		console.error('Error processing image:', error.message);
 		console.error(error); // Log the full error object
