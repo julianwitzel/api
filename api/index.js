@@ -26,6 +26,10 @@ app.get('/', async (req, res, next) => {
 	}
 });
 
+// Image Processing Route
+const imageProcessingRoutes = require('./routes/imageProcessing');
+app.use('/api', imageProcessingRoutes);
+
 // Catch-all route for handling 404s
 app.use('*', (req, res, next) => {
 	res.status(404);
