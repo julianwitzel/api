@@ -3,17 +3,18 @@ const path = require('path');
 const fs = require('fs').promises;
 const airtableRoute = require('./routes/airtable');
 const errorRoute = require('./routes/error');
+const imageProcessingRoutes = require('./routes/imageProcessing');
 
 const app = express();
 
-// Serve static files from the public directory
+// Middleware
+app.use(express.json());
 app.use(express.static(path.join(process.cwd(), 'public')));
 
-// Airtable route
+// API routes
 app.use('/api/airtable', airtableRoute);
-
-// Error route
 app.use('/api/error', errorRoute);
+app.use('/api/image', imageProcessingRoutes);
 
 // Root route
 app.get('/', async (req, res, next) => {
@@ -25,10 +26,6 @@ app.get('/', async (req, res, next) => {
 		next(err);
 	}
 });
-
-// Image Processing Route
-const imageProcessingRoutes = require('./routes/imageProcessing');
-app.use('/api', imageProcessingRoutes);
 
 // Catch-all route for handling 404s
 app.use('*', (req, res, next) => {
