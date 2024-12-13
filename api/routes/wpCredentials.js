@@ -58,19 +58,23 @@ router.post('/verify-credentials', async (req, res) => {
 
 		const planLinks = license.get('Plan');
 
-		// Hole die verfügbaren Services für diesen Plan
+		console.log('Plan Links:', planLinks);
+
 		const serviceAccounts = await base('Services')
 			.select({
 				filterByFormula: `AND(
-				{Status} = 'Aktiv',
-				FIND('${planLinks[0]}', {Erlaubte Pläne})
-			)`,
+        {Status} = 'Aktiv',
+        FIND('${planLinks[0]}', {Erlaubte Pläne})
+    )`,
 			})
 			.firstPage();
+
+		console.log('Service Accounts:', serviceAccounts);
 
 		// Formatiere die Credentials
 		const credentials = serviceAccounts.reduce((acc, account) => {
 			const type = account.get('Typ');
+			console.log('Processing account type:', type);
 			acc[type] = {
 				client_email: account.get('Client Email'),
 				private_key: account.get('Private Key'),
@@ -85,6 +89,7 @@ router.post('/verify-credentials', async (req, res) => {
 					Lizenz: [license.id],
 					'Request Type': 'get_credentials',
 					'IP-Adresse': req.ip,
+					Status: 200,
 					Timestamp: new Date().toISOString(),
 				},
 			},
@@ -97,7 +102,7 @@ router.post('/verify-credentials', async (req, res) => {
 				credentials,
 				license: {
 					status: 'Aktiv',
-					plan: planLinks,
+					plan: planLinks[0],
 					valid_until: license.get('🤖 Gültig Bis'),
 				},
 			},
