@@ -40,7 +40,6 @@ router.post('/verify-credentials', async (req, res) => {
 			});
 		}
 
-		const license = licenses[0];
 		console.log('License:', license);
 		console.log('Plan field:', license.get('Plan'));
 
@@ -56,25 +55,35 @@ router.post('/verify-credentials', async (req, res) => {
 			});
 		}
 
-		const planLinks = license.get('Plan');
-
-		console.log('Plan Links:', planLinks);
+		const license = licenses[0];
+		const planRecord = await base('Pläne').find(license.get('Plan')[0]);
+		const planName = planRecord.get('Name');
 
 		const serviceAccounts = await base('Services')
 			.select({
 				filterByFormula: `AND(
-        {Status} = 'Aktiv',
-        FIND('${planLinks[0]}', {Erlaubte Pläne})
-    )`,
+				{Status} = 'Aktiv',
+				FIND('${planName}', {Erlaubte Pläne})
+			)`,
 			})
 			.firstPage();
 
+		console.log('Plan Name:', planName);
+		console.log('Service Accounts found:', serviceAccounts.length);
 		console.log('Service Accounts:', serviceAccounts);
+
+		console.log(
+			'Raw Service Accounts:',
+			serviceAccounts.map((acc) => ({
+				id: acc.id,
+				fields: acc.fields,
+			}))
+		);
 
 		// Formatiere die Credentials
 		const credentials = serviceAccounts.reduce((acc, account) => {
+			console.log('Processing account fields:', account.fields);
 			const type = account.get('Typ');
-			console.log('Processing account type:', type);
 			acc[type] = {
 				client_email: account.get('Client Email'),
 				private_key: account.get('Private Key'),
