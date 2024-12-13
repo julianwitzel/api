@@ -2,11 +2,17 @@ const securityMiddleware = (allowedDomains = [], allowAll = false) => {
 	return (req, res, next) => {
 		const origin = req.headers.origin;
 
+		if (!origin) {
+			return next();
+		}
+
 		// CORS handling
 		if (allowAll) {
 			res.setHeader('Access-Control-Allow-Origin', '*');
-		} else if (origin && allowedDomains.includes(origin)) {
+		} else if (allowedDomains.includes(origin)) {
 			res.setHeader('Access-Control-Allow-Origin', origin);
+		} else {
+			return res.status(403).json({ error: 'Forbidden' });
 		}
 
 		// Set more detailed CORS headers
