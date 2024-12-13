@@ -5,7 +5,7 @@ const securityMiddleware = require('./middleware/security');
 const airtableRoute = require('./routes/airtable');
 const errorRoute = require('./routes/error');
 const imageProcessingRoutes = require('./routes/imageProcessing');
-const wpCredentialsRoute = require('./routes/wpCredentials');
+const wpCredentialsRoute = require('./routes/wpCredentials.js');
 
 const app = express();
 
