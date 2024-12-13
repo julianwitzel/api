@@ -1,5 +1,6 @@
 const express = require('express');
 const Airtable = require('airtable');
+const { v4: uuidv4 } = require('uuid');
 const router = express.Router();
 
 // Airtable-Konfiguration
@@ -8,15 +9,16 @@ const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
 const base = new Airtable({ apiKey: AIRTABLE_API_KEY }).base(BASE_ID);
 
 // Hilfsfunktionen
-const logRequest = async (licenseId, req, status, errorMessage = null) => {
+const logRequest = async (licenseId, req, status, traceId, message = '') => {
 	await base('Protokoll').create([
 		{
 			fields: {
-				Lizenz: licenseId ? [licenseId] : undefined,
+				Lizenz: [licenseId],
 				'Request Type': 'get_credentials',
 				'IP-Adresse': req.ip,
 				Status: status,
-				Nachricht: errorMessage,
+				'Trace ID': traceId,
+				Nachricht: message,
 				Timestamp: new Date().toISOString(),
 			},
 		},
@@ -26,8 +28,11 @@ const logRequest = async (licenseId, req, status, errorMessage = null) => {
 const validateLicense = (license, now) => {
 	const validFrom = new Date(license.get('🤖 Gültig ab'));
 	const validUntil = new Date(license.get('🤖 Gültig bis'));
+	const status = license.get('Status');
 
-	if (license.get('Status') !== 'Aktiv') {
+	if (status === 'Gelöscht') {
+		return { code: 403, message: 'License is deleted' };
+	} else if (status !== 'Aktiv') {
 		return { code: 403, message: 'License is inactive' };
 	} else if (now < validFrom) {
 		return { code: 403, message: 'License period has not started yet' };
@@ -59,34 +64,33 @@ const fetchServiceAccounts = async (planName) => {
 
 // Endpoint für Credentials Anfrage
 router.post('/verify-credentials', async (req, res) => {
+	const traceId = uuidv4();
+
 	try {
 		const { domain, license_key } = req.body;
-
-		// Validiere Eingabedaten
 		if (!domain || !license_key) {
-			const errorMessage = 'Missing required parameters';
-			await logRequest(null, req, 400, errorMessage);
 			return res.status(400).json({
 				success: false,
-				error: errorMessage,
+				error: 'Missing required parameters',
+				traceId,
 			});
 		}
 
 		const licenses = await base('Lizenzen')
 			.select({
 				filterByFormula: `AND(
-			{🤖 Key} = '${license_key}',
-			{Domain} = '${domain}'
-		  )`,
+          {🤖 Key} = '${license_key}',
+          {Domain} = '${domain}',
+          {Status} = 'Aktiv'
+        )`,
 			})
 			.firstPage();
 
 		if (!licenses.length) {
-			const errorMessage = 'Invalid license or domain mismatch';
-			await logRequest(null, req, 403, errorMessage);
 			return res.status(403).json({
 				success: false,
-				error: errorMessage,
+				error: 'Invalid or inactive license',
+				traceId,
 			});
 		}
 
@@ -94,23 +98,23 @@ router.post('/verify-credentials', async (req, res) => {
 		const now = new Date();
 		const errorStatus = validateLicense(license, now);
 
-		// Protokollierung für alle Lizenz-Status-Fehler
 		if (errorStatus) {
-			await logRequest(license.id, req, errorStatus.code, errorStatus.message);
+			await logRequest(license.id, req, errorStatus.code, traceId, errorStatus.message);
 			return res.status(errorStatus.code).json({
 				success: false,
 				error: errorStatus.message,
+				traceId,
 			});
 		}
 
-		// Zusätzliche Planprüfung
 		const planId = license.get('Plan');
 		if (!planId) {
-			const errorMessage = 'No plan associated with license';
-			await logRequest(license.id, req, 400, errorMessage);
+			const message = 'No plan associated with license';
+			await logRequest(license.id, req, 400, traceId, message);
 			return res.status(400).json({
 				success: false,
-				error: errorMessage,
+				error: message,
+				traceId,
 			});
 		}
 
@@ -118,8 +122,7 @@ router.post('/verify-credentials', async (req, res) => {
 		const planName = planRecord.get('Name');
 		const credentials = await fetchServiceAccounts(planName);
 
-		// Erfolgsfall protokollieren
-		await logRequest(license.id, req, 200);
+		await logRequest(license.id, req, 200, traceId, 'Request successful');
 
 		res.json({
 			success: true,
@@ -130,14 +133,15 @@ router.post('/verify-credentials', async (req, res) => {
 					plan: planName,
 					valid_until: license.get('🤖 Gültig bis'),
 				},
+				traceId,
 			},
 		});
 	} catch (error) {
-		const errorMessage = 'Internal server error';
-		await logRequest(null, req, 500, error.message);
+		const message = 'Internal server error';
 		res.status(500).json({
 			success: false,
-			error: errorMessage,
+			error: message,
+			traceId,
 			details: error.message,
 		});
 	}
