@@ -40,6 +40,7 @@ router.post('/verify-credentials', async (req, res) => {
 			});
 		}
 
+		const license = licenses[0];
 		console.log('License:', license);
 		console.log('Plan field:', license.get('Plan'));
 
@@ -55,7 +56,6 @@ router.post('/verify-credentials', async (req, res) => {
 			});
 		}
 
-		const license = licenses[0];
 		const planRecord = await base('Pläne').find(license.get('Plan')[0]);
 		const planName = planRecord.get('Name');
 
