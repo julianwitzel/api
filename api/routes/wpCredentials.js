@@ -3,10 +3,7 @@ const Airtable = require('airtable');
 const router = express.Router();
 
 // Konfiguration für Airtable Bases
-const BASES = {
-	licenses: process.env.ALFREDS_TOOLBOX_LICENSE_BASE_ID,
-	credentials: process.env.ALFREDS_TOOLBOX_CREDENTIALS_TABLE,
-};
+const BASE_ID = process.env.ALFREDS_TOOLBOX_LICENSE_BASE_ID;
 
 // Endpoint für Credentials Anfrage
 router.post('/verify-credentials', async (req, res) => {
@@ -22,10 +19,10 @@ router.post('/verify-credentials', async (req, res) => {
 		}
 
 		// Initialisiere Airtable Connection
-		const licenseBase = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(BASES.licenses);
+		const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(BASE_ID);
 
-		// Suche nach der Lizenz
-		const licenses = await licenseBase('Lizenzen')
+		// Suche nach der Lizenz in der Lizenzen-Tabelle
+		const licenses = await base('Lizenzen')
 			.select({
 				filterByFormula: `AND(
                 {🤖 Key} = '${license_key}',
@@ -47,8 +44,7 @@ router.post('/verify-credentials', async (req, res) => {
 		const plan = license.get('Plan');
 
 		// Hole die verfügbaren Services für diesen Plan
-		const credentialsBase = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(BASES.credentials);
-		const serviceAccounts = await credentialsBase('Services')
+		const serviceAccounts = await base('Services')
 			.select({
 				filterByFormula: `AND(
                 {Status} = 'Aktiv',
