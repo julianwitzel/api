@@ -150,3 +150,5 @@ router.post('/verify-credentials', async (req, res) => {
 		});
 	}
 });
+
+module.exports = router;
