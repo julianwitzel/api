@@ -8,14 +8,15 @@ const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
 const base = new Airtable({ apiKey: AIRTABLE_API_KEY }).base(BASE_ID);
 
 // Hilfsfunktionen
-const logRequest = async (licenseId, req, status) => {
+const logRequest = async (licenseId, req, status, errorMessage = null) => {
 	await base('Protokoll').create([
 		{
 			fields: {
-				Lizenz: [licenseId],
+				Lizenz: licenseId ? [licenseId] : undefined,
 				'Request Type': 'get_credentials',
 				'IP-Adresse': req.ip,
 				Status: status,
+				Nachricht: errorMessage,
 				Timestamp: new Date().toISOString(),
 			},
 		},
@@ -60,27 +61,32 @@ const fetchServiceAccounts = async (planName) => {
 router.post('/verify-credentials', async (req, res) => {
 	try {
 		const { domain, license_key } = req.body;
+
+		// Validiere Eingabedaten
 		if (!domain || !license_key) {
+			const errorMessage = 'Missing required parameters';
+			await logRequest(null, req, 400, errorMessage);
 			return res.status(400).json({
 				success: false,
-				error: 'Missing required parameters',
+				error: errorMessage,
 			});
 		}
 
 		const licenses = await base('Lizenzen')
 			.select({
 				filterByFormula: `AND(
-          {🤖 Key} = '${license_key}',
-          {Domain} = '${domain}',
-          {Status} = 'Aktiv'
-        )`,
+			{🤖 Key} = '${license_key}',
+			{Domain} = '${domain}'
+		  )`,
 			})
 			.firstPage();
 
 		if (!licenses.length) {
+			const errorMessage = 'Invalid license or domain mismatch';
+			await logRequest(null, req, 403, errorMessage);
 			return res.status(403).json({
 				success: false,
-				error: 'Invalid or inactive license',
+				error: errorMessage,
 			});
 		}
 
@@ -88,19 +94,23 @@ router.post('/verify-credentials', async (req, res) => {
 		const now = new Date();
 		const errorStatus = validateLicense(license, now);
 
+		// Protokollierung für alle Lizenz-Status-Fehler
 		if (errorStatus) {
-			await logRequest(license.id, req, errorStatus.code);
+			await logRequest(license.id, req, errorStatus.code, errorStatus.message);
 			return res.status(errorStatus.code).json({
 				success: false,
 				error: errorStatus.message,
 			});
 		}
 
+		// Zusätzliche Planprüfung
 		const planId = license.get('Plan');
 		if (!planId) {
+			const errorMessage = 'No plan associated with license';
+			await logRequest(license.id, req, 400, errorMessage);
 			return res.status(400).json({
 				success: false,
-				error: 'No plan associated with license',
+				error: errorMessage,
 			});
 		}
 
@@ -108,6 +118,7 @@ router.post('/verify-credentials', async (req, res) => {
 		const planName = planRecord.get('Name');
 		const credentials = await fetchServiceAccounts(planName);
 
+		// Erfolgsfall protokollieren
 		await logRequest(license.id, req, 200);
 
 		res.json({
@@ -122,9 +133,11 @@ router.post('/verify-credentials', async (req, res) => {
 			},
 		});
 	} catch (error) {
+		const errorMessage = 'Internal server error';
+		await logRequest(null, req, 500, error.message);
 		res.status(500).json({
 			success: false,
-			error: 'Internal server error',
+			error: errorMessage,
 			details: error.message,
 		});
 	}
