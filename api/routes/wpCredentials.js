@@ -41,15 +41,15 @@ router.post('/verify-credentials', async (req, res) => {
 		}
 
 		const license = licenses[0];
-		const plan = license.get('Plan');
+		const planLinks = license.get('Plan');
 
 		// Hole die verfügbaren Services für diesen Plan
 		const serviceAccounts = await base('Services')
 			.select({
 				filterByFormula: `AND(
-                {Status} = 'Aktiv',
-                {Allowed Plans} = '${plan}'
-            )`,
+				{Status} = 'Aktiv',
+				FIND('${planLinks[0]}', {Erlaubte Pläne})
+			)`,
 			})
 			.firstPage();
 
