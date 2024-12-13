@@ -82,9 +82,9 @@ router.post('/verify-credentials', async (req, res) => {
 		await base('Protokoll').create([
 			{
 				fields: {
-					License: [license.id],
+					Lizenz: [license.id],
 					'Request Type': 'get_credentials',
-					'IP Address': req.ip,
+					'IP-Adresse': req.ip,
 					Timestamp: new Date().toISOString(),
 				},
 			},
