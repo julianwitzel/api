@@ -28,19 +28,53 @@ const logRequest = async (licenseId, req, status, traceId, message = '') => {
 		console.error('Logging failed:', error);
 	}
 };
+
 const validateLicense = (license, now) => {
 	const validFrom = new Date(license.get('🤖 Gültig ab'));
 	const validUntil = new Date(license.get('🤖 Gültig bis'));
 	const status = license.get('Status');
 
-	if (status === 'Gelöscht') {
-		return { code: 403, message: 'License is deleted' };
-	} else if (status !== 'Aktiv') {
-		return { code: 403, message: 'License is inactive' };
-	} else if (now < validFrom) {
-		return { code: 403, message: 'License period has not started yet' };
-	} else if (now > validUntil) {
-		return { code: 403, message: 'License has expired' };
+	switch (status) {
+		case 'Gelöscht':
+			return {
+				code: 403,
+				message: 'License is deleted',
+				details: 'This license has been permanently deleted',
+			};
+		case 'Inaktiv':
+			return {
+				code: 403,
+				message: 'License is inactive',
+				details: 'This license is currently deactivated',
+			};
+		case 'Gesperrt':
+			return {
+				code: 403,
+				message: 'License is suspended',
+				details: 'This license has been suspended',
+			};
+		case 'Aktiv':
+			if (now < validFrom) {
+				return {
+					code: 403,
+					message: 'License not yet valid',
+					details: `License period starts at ${validFrom.toISOString()}`,
+				};
+			}
+			if (now > validUntil) {
+				return {
+					code: 403,
+					message: 'License has expired',
+					details: `License expired at ${validUntil.toISOString()}`,
+				};
+			}
+			break;
+		default:
+			return {
+				code: 403,
+				message: 'Invalid license status',
+				details: `Unknown status: ${status}`,
+			};
 	}
 	return null;
 };
@@ -70,35 +104,40 @@ router.post('/verify-credentials', async (req, res) => {
 	const traceId = uuidv4();
 
 	try {
+		// 1. Parameter-Validierung
 		const { domain, license_key } = req.body;
 		if (!domain || !license_key) {
-			await logRequest(null, req, 400, traceId, 'Missing required parameters');
+			await logRequest(null, req, 400, traceId, 'Missing parameters: ' + (!domain ? 'domain ' : '') + (!license_key ? 'license_key' : ''));
 			return res.status(400).json({
 				success: false,
 				error: 'Missing required parameters',
+				missing: (!domain ? ['domain'] : []).concat(!license_key ? ['license_key'] : []),
 				traceId,
 			});
 		}
 
+		// 2. Lizenzsuche
 		const licenses = await base('Lizenzen')
 			.select({
 				filterByFormula: `AND(
-          {🤖 Key} = '${license_key}',
-          {Domain} = '${domain}',
-          {Status} = 'Aktiv'
-        )`,
+			  {🤖 Key} = '${license_key}',
+			  {Domain} = '${domain}'
+			)`,
 			})
 			.firstPage();
 
+		// 3. Lizenz nicht gefunden
 		if (!licenses.length) {
-			await logRequest(null, req, 403, traceId, 'Invalid or inactive license');
-			return res.status(403).json({
+			await logRequest(null, req, 404, traceId, 'License not found');
+			return res.status(404).json({
 				success: false,
-				error: 'Invalid or inactive license',
+				error: 'License not found',
+				details: 'No license exists for this domain/key combination',
 				traceId,
 			});
 		}
 
+		// 4. Lizenz gefunden - Status prüfen
 		const license = licenses[0];
 		const now = new Date();
 		const errorStatus = validateLicense(license, now);
@@ -107,18 +146,25 @@ router.post('/verify-credentials', async (req, res) => {
 			await logRequest(license.id, req, errorStatus.code, traceId, errorStatus.message);
 			return res.status(errorStatus.code).json({
 				success: false,
-				trace_id: traceId,
 				error: errorStatus.message,
+				license_status: {
+					status: license.get('Status'),
+					valid_from: license.get('🤖 Gültig ab'),
+					valid_until: license.get('🤖 Gültig bis'),
+				},
+				traceId,
 			});
 		}
 
+		// 5. Plan-Validierung
 		const planId = license.get('Plan');
 		if (!planId) {
-			await logRequest(license.id, req, 400, traceId, 'No plan associated with license');
+			await logRequest(license.id, req, 400, traceId, 'License has no plan');
 			return res.status(400).json({
 				success: false,
-				trace_id: traceId,
-				error: 'No plan associated with license',
+				error: 'License configuration error',
+				details: 'No plan associated with license',
+				traceId,
 			});
 		}
 
@@ -140,13 +186,13 @@ router.post('/verify-credentials', async (req, res) => {
 			},
 		});
 	} catch (error) {
-		const message = 'Internal server error';
-		await logRequest(null, req, 500, traceId, `${message}: ${error.message}`);
+		const message = `Internal server error: ${error.message}`;
+		await logRequest(error.licenseId || null, req, 500, traceId, message);
 		res.status(500).json({
 			success: false,
-			error: message,
-			traceId,
+			error: 'Internal server error',
 			details: error.message,
+			traceId,
 		});
 	}
 });
