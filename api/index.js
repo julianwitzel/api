@@ -5,6 +5,7 @@ const securityMiddleware = require('./middleware/security');
 const airtableRoute = require('./routes/airtable');
 const errorRoute = require('./routes/error');
 const imageProcessingRoutes = require('./routes/imageProcessing');
+const wpCredentialsRoute = require('./routes/wpCredentials');
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use(express.static(path.join(process.cwd(), 'public')));
 app.use('/api/airtable', airtableRoute);
 app.use('/api/error', errorRoute);
 app.use('/api/image', imageProcessingRoutes);
+app.use('/api/wp-credentials', wpCredentialsRoute);
 
 // Root route
 app.get('/', async (req, res, next) => {
