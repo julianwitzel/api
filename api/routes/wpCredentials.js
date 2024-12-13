@@ -24,7 +24,6 @@ const logRequest = async (licenseId, req, status, traceId, message = '') => {
 		},
 	]);
 };
-
 const validateLicense = (license, now) => {
 	const validFrom = new Date(license.get('🤖 Gültig ab'));
 	const validUntil = new Date(license.get('🤖 Gültig bis'));
@@ -68,29 +67,31 @@ router.post('/verify-credentials', async (req, res) => {
 
 	try {
 		const { domain, license_key } = req.body;
+
 		if (!domain || !license_key) {
+			await logRequest(null, req, 400, traceId, 'Missing required parameters');
 			return res.status(400).json({
 				success: false,
+				trace_id: traceId,
 				error: 'Missing required parameters',
-				traceId,
 			});
 		}
 
 		const licenses = await base('Lizenzen')
 			.select({
 				filterByFormula: `AND(
-          {🤖 Key} = '${license_key}',
-          {Domain} = '${domain}',
-          {Status} = 'Aktiv'
-        )`,
+			{🤖 Key} = '${license_key}',
+			{Domain} = '${domain}'
+		  )`,
 			})
 			.firstPage();
 
 		if (!licenses.length) {
+			await logRequest(null, req, 403, traceId, 'Invalid or inactive license');
 			return res.status(403).json({
 				success: false,
+				trace_id: traceId,
 				error: 'Invalid or inactive license',
-				traceId,
 			});
 		}
 
@@ -102,19 +103,18 @@ router.post('/verify-credentials', async (req, res) => {
 			await logRequest(license.id, req, errorStatus.code, traceId, errorStatus.message);
 			return res.status(errorStatus.code).json({
 				success: false,
+				trace_id: traceId,
 				error: errorStatus.message,
-				traceId,
 			});
 		}
 
 		const planId = license.get('Plan');
 		if (!planId) {
-			const message = 'No plan associated with license';
-			await logRequest(license.id, req, 400, traceId, message);
+			await logRequest(license.id, req, 400, traceId, 'No plan associated with license');
 			return res.status(400).json({
 				success: false,
-				error: message,
-				traceId,
+				trace_id: traceId,
+				error: 'No plan associated with license',
 			});
 		}
 
@@ -122,10 +122,10 @@ router.post('/verify-credentials', async (req, res) => {
 		const planName = planRecord.get('Name');
 		const credentials = await fetchServiceAccounts(planName);
 
-		await logRequest(license.id, req, 200, traceId, 'Request successful');
-
+		await logRequest(license.id, req, 200, traceId, 'Success');
 		res.json({
 			success: true,
+			trace_id: traceId,
 			data: {
 				credentials,
 				license: {
@@ -133,18 +133,15 @@ router.post('/verify-credentials', async (req, res) => {
 					plan: planName,
 					valid_until: license.get('🤖 Gültig bis'),
 				},
-				traceId,
 			},
 		});
 	} catch (error) {
-		const message = 'Internal server error';
+		await logRequest(null, req, 500, traceId, `Internal server error: ${error.message}`);
 		res.status(500).json({
 			success: false,
-			error: message,
-			traceId,
+			trace_id: traceId,
+			error: 'Internal server error',
 			details: error.message,
 		});
 	}
 });
-
-module.exports = router;
