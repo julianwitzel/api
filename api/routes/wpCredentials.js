@@ -111,7 +111,7 @@ router.post('/verify-credentials', async (req, res) => {
 				credentials,
 				license: {
 					status: 'Aktiv',
-					plan: planLinks[0],
+					plan: planName,
 					valid_until: license.get('🤖 Gültig Bis'),
 				},
 			},
