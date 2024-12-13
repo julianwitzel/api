@@ -41,6 +41,21 @@ router.post('/verify-credentials', async (req, res) => {
 		}
 
 		const license = licenses[0];
+		console.log('License:', license);
+		console.log('Plan field:', license.get('Plan'));
+
+		// Vor dem Service Account Query fügen wir eine Sicherheitsabfrage ein
+		if (!license.get('Plan')) {
+			return res.status(400).json({
+				success: false,
+				error: 'No plan associated with license',
+				debug: {
+					licenseFields: license.fields,
+					planField: license.get('Plan'),
+				},
+			});
+		}
+
 		const planLinks = license.get('Plan');
 
 		// Hole die verfügbaren Services für diesen Plan
