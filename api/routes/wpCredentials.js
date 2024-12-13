@@ -79,7 +79,7 @@ router.post('/verify-credentials', async (req, res) => {
 		}, {});
 
 		// Logge den Zugriff
-		await licenseBase('Protokoll').create([
+		await base('Protokoll').create([
 			{
 				fields: {
 					License: [license.id],
