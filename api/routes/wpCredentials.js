@@ -71,22 +71,22 @@ router.post('/verify-credentials', async (req, res) => {
 
 	try {
 		const { domain, license_key } = req.body;
-
 		if (!domain || !license_key) {
 			await logRequest(null, req, 400, traceId, 'Missing required parameters');
 			return res.status(400).json({
 				success: false,
-				trace_id: traceId,
 				error: 'Missing required parameters',
+				traceId,
 			});
 		}
 
 		const licenses = await base('Lizenzen')
 			.select({
 				filterByFormula: `AND(
-			{🤖 Key} = '${license_key}',
-			{Domain} = '${domain}'
-		  )`,
+          {🤖 Key} = '${license_key}',
+          {Domain} = '${domain}',
+          {Status} = 'Aktiv'
+        )`,
 			})
 			.firstPage();
 
@@ -94,8 +94,8 @@ router.post('/verify-credentials', async (req, res) => {
 			await logRequest(null, req, 403, traceId, 'Invalid or inactive license');
 			return res.status(403).json({
 				success: false,
-				trace_id: traceId,
 				error: 'Invalid or inactive license',
+				traceId,
 			});
 		}
 
@@ -140,11 +140,12 @@ router.post('/verify-credentials', async (req, res) => {
 			},
 		});
 	} catch (error) {
-		await logRequest(null, req, 500, traceId, `Internal server error: ${error.message}`);
+		const message = 'Internal server error';
+		await logRequest(null, req, 500, traceId, `${message}: ${error.message}`);
 		res.status(500).json({
 			success: false,
-			trace_id: traceId,
-			error: 'Internal server error',
+			error: message,
+			traceId,
 			details: error.message,
 		});
 	}
