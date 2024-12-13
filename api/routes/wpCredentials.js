@@ -2,15 +2,64 @@ const express = require('express');
 const Airtable = require('airtable');
 const router = express.Router();
 
-// Konfiguration für Airtable Bases
+// Airtable-Konfiguration
 const BASE_ID = process.env.ALFREDS_TOOLBOX_LICENSE_BASE_ID;
+const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
+const base = new Airtable({ apiKey: AIRTABLE_API_KEY }).base(BASE_ID);
+
+// Hilfsfunktionen
+const logRequest = async (licenseId, req, status) => {
+	await base('Protokoll').create([
+		{
+			fields: {
+				Lizenz: [licenseId],
+				'Request Type': 'get_credentials',
+				'IP-Adresse': req.ip,
+				Status: status,
+				Timestamp: new Date().toISOString(),
+			},
+		},
+	]);
+};
+
+const validateLicense = (license, now) => {
+	const validFrom = new Date(license.get('🤖 Gültig ab'));
+	const validUntil = new Date(license.get('🤖 Gültig bis'));
+
+	if (license.get('Status') !== 'Aktiv') {
+		return { code: 403, message: 'License is inactive' };
+	} else if (now < validFrom) {
+		return { code: 403, message: 'License period has not started yet' };
+	} else if (now > validUntil) {
+		return { code: 403, message: 'License has expired' };
+	}
+	return null;
+};
+
+const fetchServiceAccounts = async (planName) => {
+	const serviceAccounts = await base('Services')
+		.select({
+			filterByFormula: `AND(
+        {Status} = 'Aktiv',
+        FIND('${planName}', {Erlaubte Pläne})
+      )`,
+		})
+		.firstPage();
+
+	return serviceAccounts.reduce((acc, account) => {
+		const type = account.get('Typ');
+		acc[type] = {
+			client_email: account.get('Client Email'),
+			private_key: account.get('Private Key'),
+		};
+		return acc;
+	}, {});
+};
 
 // Endpoint für Credentials Anfrage
 router.post('/verify-credentials', async (req, res) => {
 	try {
 		const { domain, license_key } = req.body;
-
-		// Validiere Request Daten
 		if (!domain || !license_key) {
 			return res.status(400).json({
 				success: false,
@@ -18,22 +67,17 @@ router.post('/verify-credentials', async (req, res) => {
 			});
 		}
 
-		// Initialisiere Airtable Connection
-		const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(BASE_ID);
-
-		// Suche nach der Lizenz in der Lizenzen-Tabelle
 		const licenses = await base('Lizenzen')
 			.select({
 				filterByFormula: `AND(
-                {🤖 Key} = '${license_key}',
-                {Domain} = '${domain}',
-                {Status} = 'Aktiv'
-            )`,
+          {🤖 Key} = '${license_key}',
+          {Domain} = '${domain}',
+          {Status} = 'Aktiv'
+        )`,
 			})
 			.firstPage();
 
-		// Wenn keine aktive Lizenz gefunden wurde
-		if (!licenses || licenses.length === 0) {
+		if (!licenses.length) {
 			return res.status(403).json({
 				success: false,
 				error: 'Invalid or inactive license',
@@ -41,70 +85,31 @@ router.post('/verify-credentials', async (req, res) => {
 		}
 
 		const license = licenses[0];
-		console.log('License:', license);
-		console.log('Plan field:', license.get('Plan'));
+		const now = new Date();
+		const errorStatus = validateLicense(license, now);
 
-		// Vor dem Service Account Query fügen wir eine Sicherheitsabfrage ein
-		if (!license.get('Plan')) {
-			return res.status(400).json({
+		if (errorStatus) {
+			await logRequest(license.id, req, errorStatus.code);
+			return res.status(errorStatus.code).json({
 				success: false,
-				error: 'No plan associated with license',
-				debug: {
-					licenseFields: license.fields,
-					planField: license.get('Plan'),
-				},
+				error: errorStatus.message,
 			});
 		}
 
-		const planRecord = await base('Pläne').find(license.get('Plan')[0]);
+		const planId = license.get('Plan');
+		if (!planId) {
+			return res.status(400).json({
+				success: false,
+				error: 'No plan associated with license',
+			});
+		}
+
+		const planRecord = await base('Pläne').find(planId[0]);
 		const planName = planRecord.get('Name');
+		const credentials = await fetchServiceAccounts(planName);
 
-		const serviceAccounts = await base('Services')
-			.select({
-				filterByFormula: `AND(
-				{Status} = 'Aktiv',
-				FIND('${planName}', {Erlaubte Pläne})
-			)`,
-			})
-			.firstPage();
+		await logRequest(license.id, req, 200);
 
-		console.log('Plan Name:', planName);
-		console.log('Service Accounts found:', serviceAccounts.length);
-		console.log('Service Accounts:', serviceAccounts);
-
-		console.log(
-			'Raw Service Accounts:',
-			serviceAccounts.map((acc) => ({
-				id: acc.id,
-				fields: acc.fields,
-			}))
-		);
-
-		// Formatiere die Credentials
-		const credentials = serviceAccounts.reduce((acc, account) => {
-			console.log('Processing account fields:', account.fields);
-			const type = account.get('Typ');
-			acc[type] = {
-				client_email: account.get('Client Email'),
-				private_key: account.get('Private Key'),
-			};
-			return acc;
-		}, {});
-
-		// Logge den Zugriff
-		await base('Protokoll').create([
-			{
-				fields: {
-					Lizenz: [license.id],
-					'Request Type': 'get_credentials',
-					'IP-Adresse': req.ip,
-					Status: 200,
-					Timestamp: new Date().toISOString(),
-				},
-			},
-		]);
-
-		// Sende die Credentials zurück
 		res.json({
 			success: true,
 			data: {
@@ -112,17 +117,15 @@ router.post('/verify-credentials', async (req, res) => {
 				license: {
 					status: 'Aktiv',
 					plan: planName,
-					valid_until: license.get('🤖 Gültig Bis'),
+					valid_until: license.get('🤖 Gültig bis'),
 				},
 			},
 		});
 	} catch (error) {
-		console.error('Credential verification error:', error);
 		res.status(500).json({
 			success: false,
 			error: 'Internal server error',
 			details: error.message,
-			stack: error.stack, // Nur temporär für Debugging!
 		});
 	}
 });
