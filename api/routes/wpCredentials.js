@@ -10,19 +10,23 @@ const base = new Airtable({ apiKey: AIRTABLE_API_KEY }).base(BASE_ID);
 
 // Hilfsfunktionen
 const logRequest = async (licenseId, req, status, traceId, message = '') => {
-	await base('Protokoll').create([
-		{
-			fields: {
-				Lizenz: [licenseId],
-				'Request Type': 'get_credentials',
-				'IP-Adresse': req.ip,
-				Status: status,
-				'Trace ID': traceId,
-				Nachricht: message,
-				Timestamp: new Date().toISOString(),
+	try {
+		await base('Protokoll').create([
+			{
+				fields: {
+					Lizenz: licenseId ? [licenseId] : undefined,
+					'Request Type': 'get_credentials',
+					'IP-Adresse': req.ip,
+					Status: status,
+					'Trace ID': traceId,
+					Nachricht: message,
+					Timestamp: new Date().toISOString(),
+				},
 			},
-		},
-	]);
+		]);
+	} catch (error) {
+		console.error('Logging failed:', error);
+	}
 };
 const validateLicense = (license, now) => {
 	const validFrom = new Date(license.get('🤖 Gültig ab'));
