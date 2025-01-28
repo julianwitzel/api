@@ -6,11 +6,12 @@ const airtableRoute = require('./routes/airtable');
 const errorRoute = require('./routes/error');
 const imageProcessingRoutes = require('./routes/imageProcessing');
 const wpCredentialsRoute = require('./routes/wpCredentials.js');
+const slackRoutes = require('./routes/slack');
 
 const app = express();
 
 // Define allowed domains
-const allowedDomains = ['https://vierless.de', 'https://cf-vierless.webflow.io'];
+const allowedDomains = ['https://vierless.de', 'https://cf-vierless.webflow.io', 'https://slack.com'];
 
 // Apply security middleware to all routes
 app.use(securityMiddleware(allowedDomains, false));
@@ -26,6 +27,7 @@ app.use('/api/airtable', airtableRoute);
 app.use('/api/error', errorRoute);
 app.use('/api/image', imageProcessingRoutes);
 app.use('/api/wp-credentials', wpCredentialsRoute);
+app.use('/api/slack', slackRoutes);
 
 // Root route
 app.get('/', async (req, res, next) => {
