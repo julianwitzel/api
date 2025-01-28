@@ -17,55 +17,28 @@ router.post('/options', async (req, res) => {
 			return res.status(400).json({ error: 'Invalid payload' });
 		}
 
-		const searchTerm = slackPayload.value?.toLowerCase() || '';
+		const makePayload = {
+			payload: slackPayload,
+		};
 
-		try {
-			const makePayload = {
-				payload: slackPayload,
-			};
+		const makeResponse = await fetch('https://hook.eu1.make.com/idqd81md0dp59hz3o1nr7nt41xu46umc', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify(makePayload),
+		});
 
-			console.log('Sending to Make.com:', makePayload);
+		const makeData = await makeResponse.json();
 
-			const makeResponse = await fetch('https://hook.eu1.make.com/idqd81md0dp59hz3o1nr7nt41xu46umc', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify(makePayload),
-			});
-
-			const rawResponse = await makeResponse.text();
-			console.log('Raw Make.com response:', rawResponse);
-
-			// Just parse once - the response is already in Slack's format
-			const options = JSON.parse(rawResponse);
-			console.log('Parsed options:', options);
-
-			return res.status(200).json(options);
-		} catch (error) {
-			console.log('Error processing Make.com response:', error);
-			// Fallback options
-			const fallbackOptions = [
-				{
-					text: {
-						type: 'plain_text',
-						text: `Example Project 1 (${searchTerm})`,
-					},
-					value: 'project_1',
-				},
-				{
-					text: {
-						type: 'plain_text',
-						text: `Example Project 2 (${searchTerm})`,
-					},
-					value: 'project_2',
-				},
-			];
-
-			const filteredOptions = fallbackOptions.filter((option) => option.text.text.toLowerCase().includes(searchTerm));
-
+		// Check if we have valid options data
+		if (makeData?.body?.options?.length > 0 && makeData.body.options[0]?.text?.text && makeData.body.options[0]?.value) {
+			// Return the options if they contain valid data
+			return res.status(200).json(makeData.body);
+		} else {
+			// Return empty options array if no valid data
 			return res.status(200).json({
-				options: filteredOptions,
+				options: [],
 			});
 		}
 	} catch (error) {
