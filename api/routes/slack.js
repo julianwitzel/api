@@ -17,12 +17,22 @@ router.post('/options', async (req, res) => {
 
 		console.log('Make.com response status:', makeResponse.status);
 
-		const makeData = await makeResponse.json();
-		console.log('Make.com response data:', makeData);
+		// Get the raw text response first
+		const rawResponse = await makeResponse.text();
+		console.log('Raw Make.com response:', rawResponse);
 
-		const options = JSON.parse(makeData.body);
-
-		return res.status(200).json(options);
+		try {
+			// Try to parse it as JSON
+			const makeData = JSON.parse(rawResponse);
+			const options = JSON.parse(makeData.body);
+			return res.status(200).json(options);
+		} catch (parseError) {
+			console.error('Parse error:', parseError);
+			return res.status(500).json({
+				error: 'Failed to parse Make.com response',
+				rawResponse: rawResponse,
+			});
+		}
 	} catch (error) {
 		console.error('Detailed error:', error);
 		return res.status(500).json({
