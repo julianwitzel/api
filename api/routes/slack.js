@@ -20,7 +20,6 @@ router.post('/options', async (req, res) => {
 		const searchTerm = slackPayload.value?.toLowerCase() || '';
 
 		try {
-			// Wrap the payload in an object before sending to Make.com
 			const makePayload = {
 				payload: slackPayload,
 			};
@@ -32,21 +31,19 @@ router.post('/options', async (req, res) => {
 				headers: {
 					'Content-Type': 'application/json',
 				},
-				body: JSON.stringify(makePayload), // Send the wrapped payload
+				body: JSON.stringify(makePayload),
 			});
 
 			const rawResponse = await makeResponse.text();
 			console.log('Raw Make.com response:', rawResponse);
 
-			try {
-				const makeData = JSON.parse(rawResponse);
-				const options = JSON.parse(makeData.body);
-				return res.status(200).json(options);
-			} catch (parseError) {
-				console.log('Could not parse Make.com response, using fallback options');
-				throw new Error('Invalid Make.com response');
-			}
+			// Just parse once - the response is already in Slack's format
+			const options = JSON.parse(rawResponse);
+			console.log('Parsed options:', options);
+
+			return res.status(200).json(options);
 		} catch (error) {
+			console.log('Error processing Make.com response:', error);
 			// Fallback options
 			const fallbackOptions = [
 				{
