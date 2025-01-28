@@ -32,12 +32,12 @@ router.post('/options', async (req, res) => {
 
 		const makeData = await makeResponse.json();
 		console.log('3. Raw Make.com response:', makeData);
-		console.log('4. Make.com options:', makeData?.body?.options);
+		console.log('4. Make.com options:', makeData?.options);
 
 		// Check if we have valid options data
-		if (makeData?.body?.options?.length > 0 && makeData.body.options[0]?.text?.text && makeData.body.options[0]?.value) {
-			console.log('5. Valid options found, returning:', makeData.body);
-			return res.status(200).json(makeData.body);
+		if (makeData?.options?.length > 0 && makeData.options[0]?.text?.text && makeData.options[0]?.value) {
+			console.log('5. Valid options found, returning:', makeData);
+			return res.status(200).json(makeData);
 		} else {
 			console.log('6. No valid options, returning empty array');
 			return res.status(200).json({
