@@ -20,30 +20,34 @@ router.post('/options', async (req, res) => {
 		const searchTerm = slackPayload.value?.toLowerCase() || '';
 
 		try {
-			// Try to get data from Make.com
+			// Wrap the payload in an object before sending to Make.com
+			const makePayload = {
+				payload: slackPayload,
+			};
+
+			console.log('Sending to Make.com:', makePayload);
+
 			const makeResponse = await fetch('https://hook.eu1.make.com/idqd81md0dp59hz3o1nr7nt41xu46umc', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 				},
-				body: JSON.stringify(slackPayload),
+				body: JSON.stringify(makePayload), // Send the wrapped payload
 			});
 
 			const rawResponse = await makeResponse.text();
 			console.log('Raw Make.com response:', rawResponse);
 
-			// Try to parse the response
 			try {
 				const makeData = JSON.parse(rawResponse);
 				const options = JSON.parse(makeData.body);
 				return res.status(200).json(options);
 			} catch (parseError) {
 				console.log('Could not parse Make.com response, using fallback options');
-				// If Make.com response can't be parsed, fall back to test options
 				throw new Error('Invalid Make.com response');
 			}
 		} catch (error) {
-			// Fallback options that incorporate the search term
+			// Fallback options
 			const fallbackOptions = [
 				{
 					text: {
@@ -61,7 +65,6 @@ router.post('/options', async (req, res) => {
 				},
 			];
 
-			// Filter fallback options based on search term
 			const filteredOptions = fallbackOptions.filter((option) => option.text.text.toLowerCase().includes(searchTerm));
 
 			return res.status(200).json({
@@ -70,7 +73,6 @@ router.post('/options', async (req, res) => {
 		}
 	} catch (error) {
 		console.error('Detailed error:', error);
-		// Even in case of error, return empty options array rather than error
 		return res.status(200).json({
 			options: [],
 		});
