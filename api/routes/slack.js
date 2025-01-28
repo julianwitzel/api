@@ -5,7 +5,7 @@ const router = express.Router();
 router.post('/options', async (req, res) => {
 	try {
 		// Forward the request to Make.com
-		const makeResponse = await fetch('https://hook.eu1.make.com/your-make-webhook-url', {
+		const makeResponse = await fetch('https://hook.eu1.make.com/idqd81md0dp59hz3o1nr7nt41xu46umc', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
