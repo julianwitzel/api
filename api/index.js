@@ -1,56 +1,48 @@
+// api/routes/slack.js
 const express = require('express');
-const path = require('path');
-const fs = require('fs').promises;
-const securityMiddleware = require('./middleware/security');
-const airtableRoute = require('./routes/airtable');
-const errorRoute = require('./routes/error');
-const imageProcessingRoutes = require('./routes/imageProcessing');
-const wpCredentialsRoute = require('./routes/wpCredentials.js');
-const slackRoutes = require('./routes/slack');
+const fetch = require('node-fetch');
+const router = express.Router();
 
-const app = express();
-
-// Define allowed domains
-const allowedDomains = ['https://vierless.de', 'https://cf-vierless.webflow.io', 'https://slack.com'];
-
-// Apply security middleware to all routes
-app.use(securityMiddleware(allowedDomains, false));
-
-// Body parsing middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Serve static files from the public directory
-app.use(express.static(path.join(process.cwd(), 'public')));
-
-// API routes
-app.use('/api/airtable', airtableRoute);
-app.use('/api/error', errorRoute);
-app.use('/api/image', imageProcessingRoutes);
-app.use('/api/wp-credentials', wpCredentialsRoute);
-app.use('/api/slack', slackRoutes);
-
-// Root route
-app.get('/', async (req, res, next) => {
+router.post('/options', async (req, res) => {
 	try {
-		const landingPath = path.join(process.cwd(), 'public', 'html', 'index.html');
-		const content = await fs.readFile(landingPath, 'utf8');
-		res.send(content);
-	} catch (err) {
-		next(err);
+		// Parse Slack's payload
+		let slackPayload;
+		try {
+			slackPayload = JSON.parse(req.body.payload);
+			console.log('Parsed Slack payload:', slackPayload);
+		} catch (parseError) {
+			console.error('Error parsing Slack payload:', parseError);
+			return res.status(400).json({ error: 'Invalid payload' });
+		}
+
+		// Send complete payload to Make.com
+		const makeResponse = await fetch('https://hook.eu1.make.com/idqd81md0dp59hz3o1nr7nt41xu46umc', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify(slackPayload),
+		});
+
+		if (!makeResponse.ok) {
+			console.log('Make.com error response:', await makeResponse.text());
+			return res.status(makeResponse.status).json({ error: 'Make.com processing failed' });
+		}
+
+		// Parse Make.com's wrapped response
+		const makeData = await makeResponse.json();
+		console.log('Make.com response:', makeData);
+
+		// Extract the options from Make.com's response body and send to Slack
+		const options = JSON.parse(makeData.body);
+		return res.status(200).json(options);
+	} catch (error) {
+		console.error('Detailed error:', error);
+		return res.status(500).json({
+			error: 'Internal server error',
+			details: error.message,
+		});
 	}
 });
 
-// Catch-all route for handling 404s
-app.use('*', (req, res, next) => {
-	res.status(404);
-	next(new Error('Not Found'));
-});
-
-// Error handler
-app.use((err, req, res, next) => {
-	const statusCode = res.statusCode !== 200 ? res.statusCode : 500;
-	errorRoute.renderErrorPage(req, res, statusCode);
-});
-
-module.exports = app;
+module.exports = router;
